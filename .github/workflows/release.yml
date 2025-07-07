@@ -8,12 +8,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
+          # - platform: 'macos-latest' # for Arm based macs (M1 and above).
+          #   args: '--target aarch64-apple-darwin'
           # - platform: 'macos-latest' # for Intel based macs.
           #   args: '--target x86_64-apple-darwin'
-          # - platform: 'windows-latest'
-          #   args: ''
+          - platform: 'windows-latest'
+            args: ''
     
     runs-on: ${{ matrix.platform }}
 
@@ -39,10 +39,10 @@ jobs:
         working-directory: ./guahao-app
         run: yarn install
 
-      - name: Get version from package.json
+      - name: Get version from tauri.conf.json
         id: get_version
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          VERSION=$(node -p "require('./guahao-app/src-tauri/tauri.conf.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
       - name: Extract changelog for this version
@@ -68,3 +68,50 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.REPO_RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+  
+  sign:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Download release assets
+        uses: robinraju/release-downloader@v1.10
+        with:
+          repository: yuwet15/guahao-app-releases
+          tag: v${{ needs.build.outputs.version }}
+          fileName: "*.exe,*.msi"
+          token: ${{ secrets.REPO_RELEASE_TOKEN }}
+
+      - name: Decode and import PFX certificate (Windows only)
+        run: |
+          echo "${{ secrets.WINDOWS_PFX }}" | Out-File -Encoding ascii encoded.txt
+          certutil -decode encoded.txt cert.pfx
+          $certPassword = "${{ secrets.WINDOWS_PFX_PASS }}"
+          $securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
+          Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+      
+      - name: Find MSI and EXE files
+        id: find_files
+        run: |
+          $paths = Get-ChildItem *.msi, *.exe | ForEach-Object { $_.FullName }
+          $joined = $paths -join "`n"
+          "files=$joined" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+      
+      - name: Sign all binaries
+        if: runner.os == 'Windows'
+        uses: dlemstra/code-sign-action@v1
+        with:
+          certificate: ${{ secrets.WINDOWS_PFX }}
+          password: ${{ secrets.WINDOWS_PFX_PASS }}
+          files: ${{ steps.find_files.outputs.files }}
+
+      - name: Upload signed assets (replace)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build.outputs.version }}
+          files: |
+            *.exe
+            *.msi
+          token: ${{ secrets.REPO_RELEASE_TOKEN }}
