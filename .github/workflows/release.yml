@@ -41,6 +41,7 @@ jobs:
 
       - name: Get version from tauri.conf.json
         id: get_version
+        shell: bash
         run: |
           VERSION=$(node -p "require('./guahao-app/src-tauri/tauri.conf.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
