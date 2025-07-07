@@ -8,10 +8,10 @@ jobs:
     strategy:
       matrix:
         include:
-          # - platform: 'macos-latest' # for Arm based macs (M1 and above).
-          #   args: '--target aarch64-apple-darwin'
-          # - platform: 'macos-latest' # for Intel based macs.
-          #   args: '--target x86_64-apple-darwin'
+          - platform: 'macos-latest' # for Arm based macs (M1 and above).
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
           - platform: 'windows-latest'
             args: ''
     
@@ -74,7 +74,6 @@ jobs:
       version: ${{ steps.get_version.outputs.version }}
   
   sign:
-    needs: build
     runs-on: windows-latest
 
     steps:
@@ -82,38 +81,51 @@ jobs:
         uses: robinraju/release-downloader@v1.10
         with:
           repository: yuwet15/guahao-app-releases
-          tag: v${{ needs.build.outputs.version }}
-          fileName: "*.exe,*.msi"
+          tag: v0.1.5
+          fileName: "*.exe"
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
 
-      - name: Decode and import PFX certificate (Windows only)
+      - name: Download release assets (msi)
+        uses: robinraju/release-downloader@v1.10
+        with:
+          repository: yuwet15/guahao-app-releases
+          tag: v0.1.5
+          fileName: "*.msi"
+          token: ${{ secrets.REPO_RELEASE_TOKEN }}
+      
+      - name: List downloaded files
         run: |
-          echo "${{ secrets.WINDOWS_PFX }}" | Out-File -Encoding ascii encoded.txt
-          certutil -decode encoded.txt cert.pfx
-          $certPassword = "${{ secrets.WINDOWS_PFX_PASS }}"
-          $securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
-          Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+          echo "PWD: $(Get-Location)"
+          Get-ChildItem -Recurse
+        shell: powershell
       
       - name: Find MSI and EXE files
         id: find_files
+        shell: pwsh
         run: |
-          $paths = Get-ChildItem *.msi, *.exe | ForEach-Object { $_.FullName }
+          $paths = Get-ChildItem -Recurse -Include *.msi, *.exe | ForEach-Object { $_.FullName }
           $joined = $paths -join "`n"
-          "files=$joined" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-      
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "files<<EOF`n$joined`nEOF"
+    
+
       - name: Sign all binaries
-        if: runner.os == 'Windows'
         uses: dlemstra/code-sign-action@v1
         with:
           certificate: ${{ secrets.WINDOWS_PFX }}
           password: ${{ secrets.WINDOWS_PFX_PASS }}
           files: ${{ steps.find_files.outputs.files }}
 
+      - name: Show current directory and files
+        run: |
+          echo "PWD: $(Get-Location)"
+          Get-ChildItem -Recurse
+        shell: powershell
+
       - name: Upload signed assets (replace)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.build.outputs.version }}
+          tag_name: v0.1.5
           files: |
-            *.exe
-            *.msi
+            **/*.exe
+            **/*.msi
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
