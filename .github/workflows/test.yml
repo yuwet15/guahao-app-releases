@@ -1,0 +1,42 @@
+name: Test Sign
+
+on:
+  workflow_dispatch:
+
+jobs:  
+  sign:
+    runs-on: windows-latest
+
+    steps:
+      - name: Download release assets
+        uses: robinraju/release-downloader@v1.10
+        with:
+          repository: yuwet15/guahao-app-releases
+          tag: v0.1.5
+          fileName: "*.exe,*.msi"
+          token: ${{ secrets.REPO_RELEASE_TOKEN }}
+
+      - name: Decode and import PFX certificate (Windows only)
+        run: |
+          echo "${{ secrets.WINDOWS_PFX }}" | Out-File -Encoding ascii encoded.txt
+          certutil -decode encoded.txt cert.pfx
+          $certPassword = "${{ secrets.WINDOWS_PFX_PASS }}"
+          $securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
+          Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+      
+      - name: Sign all binaries
+        if: runner.os == 'Windows'
+        uses: dlemstra/code-sign-action@v1
+        with:
+          certificate: ${{ secrets.WINDOWS_PFX }}
+          password: ${{ secrets.WINDOWS_PFX_PASS }}
+          files: "*.exe,*.msi"
+
+      - name: Upload signed assets (replace)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.5
+          files: |
+            *.exe
+            *.msi
+          token: ${{ secrets.REPO_RELEASE_TOKEN }}
