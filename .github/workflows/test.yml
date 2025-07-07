@@ -13,8 +13,21 @@ jobs:
         with:
           repository: yuwet15/guahao-app-releases
           tag: v0.1.5
-          fileName: "*.exe,*.msi"
+          fileName: "*.exe"
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
+
+      - name: Download release assets (msi)
+        uses: robinraju/release-downloader@v1.10
+        with:
+          repository: yuwet15/guahao-app-releases
+          tag: v0.1.5
+          fileName: "*.msi"
+          token: ${{ secrets.REPO_RELEASE_TOKEN }}
+      - name: List downloaded files
+        run: |
+          echo "PWD: $(Get-Location)"
+          Get-ChildItem -Recurse
+        shell: powershell
 
       - name: Decode .pfx file
         shell: bash
