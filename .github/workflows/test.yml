@@ -24,21 +24,19 @@ jobs:
           $securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
           Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
       
-      - name: Find MSI and EXE files
-        id: find_files
-        shell: pwsh
+      - name: Sign binaries with signtool
+        shell: powershell
         run: |
-          $files = Get-ChildItem *.msi, *.exe | ForEach-Object { $_.FullName }
-          $output = [string]::Join(",", $files)
-          echo "files=$output" >> $env:GITHUB_OUTPUT
-      
-      - name: Sign all binaries
-        if: runner.os == 'Windows'
-        uses: dlemstra/code-sign-action@v1
-        with:
-          certificate: ${{ secrets.WINDOWS_PFX }}
-          password: ${{ secrets.WINDOWS_PFX_PASS }}
-          files: ${{ steps.find_files.outputs.files }}
+          $files = Get-ChildItem *.exe, *.msi
+          foreach ($file in $files) {
+            & "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" sign `
+              /f cert.pfx `
+              /p "${{ secrets.WINDOWS_PFX_PASS }}" `
+              /tr http://timestamp.digicert.com `
+              /td sha256 `
+              /fd sha256 `
+              "$($file.FullName)"
+          }
 
       - name: Upload signed assets (replace)
         uses: softprops/action-gh-release@v2
