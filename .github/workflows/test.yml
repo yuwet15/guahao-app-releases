@@ -35,8 +35,8 @@ jobs:
         shell: pwsh
         run: |
           $paths = Get-ChildItem -Recurse -Include *.msi, *.exe | ForEach-Object { $_.FullName }
-          $escaped = $paths -join ","
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "files=$escaped"
+          $joined = $paths -join "`n"
+          "files=$joined" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
     
 
       - name: Sign all binaries
