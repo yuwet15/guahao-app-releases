@@ -34,7 +34,7 @@ jobs:
         id: find_files
         run: |
           $paths = Get-ChildItem -Recurse -Include *.msi, *.exe | ForEach-Object { $_.FullName }
-          $joined = $paths -join ","
+          $joined = $paths -join "`n"
           "files=$joined" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
     
 
