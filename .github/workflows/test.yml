@@ -16,14 +16,11 @@ jobs:
           fileName: "*.exe,*.msi"
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
 
-      - name: Decode and import PFX certificate (Windows only)
+      - name: Decode .pfx file
+        shell: bash
         run: |
-          echo "${{ secrets.WINDOWS_PFX }}" | Out-File -Encoding ascii encoded.txt
-          certutil -decode encoded.txt cert.pfx
-          $certPassword = "${{ secrets.WINDOWS_PFX_PASS }}"
-          $securePassword = ConvertTo-SecureString -String $certPassword -AsPlainText -Force
-          Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
-      
+          echo "${{ secrets.WINDOWS_PFX }}" | base64 -d > cert.pfx
+
       - name: Sign binaries with signtool
         shell: powershell
         run: |
