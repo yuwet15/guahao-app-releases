@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           VERSION=${{ steps.get_version.outputs.version }}
-          BODY=$(awk "/## v$VERSION/{flag=1;next}/## v/{flag=0}flag" CHANGELOG.md)
+          BODY=$(awk "/## v$VERSION/{flag=1;next}/## v/{flag=0}flag" ./guahao-app/CHANGELOG.md)
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
