@@ -1,0 +1,46 @@
+name: Clone, Build, Sign and Release Guahao
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Clone private repo
+        run: |
+          git clone https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/yuwet15/guahao-app.git
+          cd guahao-app
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rust-src
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build and publish with Tauri
+        uses: tauri-apps/tauri-action@v0.5.22
+        with:
+          tagName: v__VERSION__
+          releaseName: "Guahao App v__VERSION__"
+          releaseBody: "Auto-generated release for version __VERSION__"
+          includeUpdaterJson: true
+          releaseDraft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
