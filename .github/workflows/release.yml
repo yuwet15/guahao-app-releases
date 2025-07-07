@@ -29,11 +29,13 @@ jobs:
           components: rust-src
 
       - name: Install dependencies
+        working-directory: ./guahao-app
         run: yarn install
 
       - name: Build and publish with Tauri
         uses: tauri-apps/tauri-action@v0.5.22
         with:
+          projectPath: ./guahao-app
           tagName: v__VERSION__
           releaseName: "Guahao App v__VERSION__"
           releaseBody: "Auto-generated release for version __VERSION__"
