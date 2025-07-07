@@ -39,7 +39,7 @@ jobs:
         run: |
           $files = Get-ChildItem *.exe, *.msi
           foreach ($file in $files) {
-            & "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" sign `
+            signtool sign `
               /f cert.pfx `
               /p "${{ secrets.WINDOWS_PFX_PASS }}" `
               /tr http://timestamp.digicert.com `
