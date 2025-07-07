@@ -36,7 +36,7 @@ jobs:
         run: |
           $paths = Get-ChildItem -Recurse -Include *.msi, *.exe | ForEach-Object { $_.FullName }
           $joined = $paths -join "`n"
-          "files=$joined" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "files<<EOF`n$joined`nEOF"
     
 
       - name: Sign all binaries
