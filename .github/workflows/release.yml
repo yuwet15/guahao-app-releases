@@ -39,10 +39,28 @@ jobs:
         working-directory: ./guahao-app
         run: yarn install
 
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          BODY=$(awk "/## v$VERSION/{flag=1;next}/## v/{flag=0}flag" CHANGELOG.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Build and publish with Tauri
         uses: tauri-apps/tauri-action@v0.5.22
         with:
           projectPath: ./guahao-app
+          tagName: v__VERSION__
+          releaseName: "Guahao App v__VERSION__"
+          releaseBody: ${{ steps.changelog.outputs.changelog }}
           includeUpdaterJson: true
           releaseDraft: false
           prerelease: false
