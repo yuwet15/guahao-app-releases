@@ -66,6 +66,7 @@ jobs:
           includeUpdaterJson: true
           releaseDraft: false
           prerelease: false
+          args: ${{ matrix.args }}
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
