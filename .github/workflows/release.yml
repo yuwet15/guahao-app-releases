@@ -5,10 +5,17 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        include:
+          - platform: 'macos-latest' # for Arm based macs (M1 and above).
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
+          - platform: 'windows-latest'
+            args: ''
+    
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Clone private repo
@@ -36,9 +43,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0.5.22
         with:
           projectPath: ./guahao-app
-          tagName: v__VERSION__
-          releaseName: "Guahao App v__VERSION__"
-          releaseBody: "Auto-generated release for version __VERSION__"
           includeUpdaterJson: true
           releaseDraft: false
           prerelease: false
