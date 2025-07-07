@@ -34,12 +34,17 @@ jobs:
               /fd sha256 `
               "$($file.FullName)"
           }
+      - name: Show current directory and files
+        run: |
+          echo "PWD: $(Get-Location)"
+          Get-ChildItem -Recurse
+        shell: powershell
 
       - name: Upload signed assets (replace)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.1.5
           files: |
-            *.exe
-            *.msi
+            **/*.exe
+            **/*.msi
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
