@@ -23,30 +23,27 @@ jobs:
           tag: v0.1.5
           fileName: "*.msi"
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
+      
       - name: List downloaded files
         run: |
           echo "PWD: $(Get-Location)"
           Get-ChildItem -Recurse
         shell: powershell
-
-      - name: Decode .pfx file
-        shell: bash
+      
+      - name: Find MSI and EXE files
+        id: find_files
         run: |
-          echo "${{ secrets.WINDOWS_PFX }}" | base64 -d > cert.pfx
+          $paths = Get-ChildItem -Recurse -Include *.msi, *.exe | ForEach-Object { $_.FullName }
+          $joined = $paths -join "`n"
+          "files=$joined" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
 
-      - name: Sign binaries with signtool
-        shell: powershell
-        run: |
-          $files = Get-ChildItem *.exe, *.msi
-          foreach ($file in $files) {
-            signtool sign `
-              /f cert.pfx `
-              /p "${{ secrets.WINDOWS_PFX_PASS }}" `
-              /tr http://timestamp.digicert.com `
-              /td sha256 `
-              /fd sha256 `
-              "$($file.FullName)"
-          }
+      - name: Sign all binaries
+        uses: dlemstra/code-sign-action@v1
+        with:
+          certificate: ${{ secrets.WINDOWS_PFX }}
+          password: ${{ secrets.WINDOWS_PFX_PASS }}
+          files: ${{ steps.find_files.outputs.files }}
+
       - name: Show current directory and files
         run: |
           echo "PWD: $(Get-Location)"
