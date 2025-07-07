@@ -74,6 +74,7 @@ jobs:
       version: ${{ steps.get_version.outputs.version }}
   
   sign:
+    needs: build
     runs-on: windows-latest
 
     steps:
@@ -81,7 +82,7 @@ jobs:
         uses: robinraju/release-downloader@v1.10
         with:
           repository: yuwet15/guahao-app-releases
-          tag: v0.1.5
+          tag: v${{ needs.build.outputs.version }}
           fileName: "*.exe"
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
 
@@ -89,16 +90,10 @@ jobs:
         uses: robinraju/release-downloader@v1.10
         with:
           repository: yuwet15/guahao-app-releases
-          tag: v0.1.5
+          tag: v${{ needs.build.outputs.version }}
           fileName: "*.msi"
           token: ${{ secrets.REPO_RELEASE_TOKEN }}
-      
-      - name: List downloaded files
-        run: |
-          echo "PWD: $(Get-Location)"
-          Get-ChildItem -Recurse
-        shell: powershell
-      
+
       - name: Find MSI and EXE files
         id: find_files
         shell: pwsh
@@ -106,8 +101,7 @@ jobs:
           $paths = Get-ChildItem -Recurse -Include *.msi, *.exe | ForEach-Object { $_.FullName }
           $joined = $paths -join "`n"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "files<<EOF`n$joined`nEOF"
-    
-
+      
       - name: Sign all binaries
         uses: dlemstra/code-sign-action@v1
         with:
@@ -115,16 +109,10 @@ jobs:
           password: ${{ secrets.WINDOWS_PFX_PASS }}
           files: ${{ steps.find_files.outputs.files }}
 
-      - name: Show current directory and files
-        run: |
-          echo "PWD: $(Get-Location)"
-          Get-ChildItem -Recurse
-        shell: powershell
-
       - name: Upload signed assets (replace)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.5
+          tag_name: v${{ needs.build.outputs.version }}
           files: |
             **/*.exe
             **/*.msi
