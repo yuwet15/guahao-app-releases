@@ -34,7 +34,11 @@ jobs:
           toolchain: stable
           override: true
           components: rust-src
-
+          
+      - name: Add Intel Mac target
+        if: matrix.args == '--target x86_64-apple-darwin'
+        run: rustup target add x86_64-apple-darwin
+        
       - name: Install dependencies
         working-directory: ./guahao-app
         run: yarn install
